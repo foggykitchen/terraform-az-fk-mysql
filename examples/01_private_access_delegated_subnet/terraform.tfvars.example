@@ -1,0 +1,12 @@
+resource_group_name = "foggykitchen-rg"
+location            = "westeurope"
+name_prefix         = "fk-mysql01"
+
+mysql_admin_username = "mysqladmin"
+mysql_admin_password = "REPLACE_WITH_STRONG_PASSWORD"
+
+tags = {
+  project     = "foggykitchen"
+  environment = "dev"
+  managed_by  = "opentofu"
+}
