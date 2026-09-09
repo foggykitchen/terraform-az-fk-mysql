@@ -1,5 +1,17 @@
 locals {
-  public_network_access = var.public_network_access_enabled ? "Enabled" : "Disabled"
+  public_network_access     = var.public_network_access_enabled ? "Enabled" : "Disabled"
+  password_auth_enabled     = var.entra_authentication.enabled ? var.entra_authentication.password_auth_enabled : true
+  entra_administrator_login = var.entra_authentication.enabled && var.entra_administrator != null ? var.entra_administrator.login : null
+}
+
+data "azurerm_monitor_diagnostic_categories" "this" {
+  for_each = {
+    for setting_key, setting in var.diagnostic_settings :
+    setting_key => setting
+    if setting.log_categories == null
+  }
+
+  resource_id = azurerm_mysql_flexible_server.this.id
 }
 
 resource "azurerm_mysql_flexible_server" "this" {
@@ -22,6 +34,26 @@ resource "azurerm_mysql_flexible_server" "this" {
   point_in_time_restore_time_in_utc = var.point_in_time_restore_time_in_utc
   replication_role                  = var.replication_role
   tags                              = var.tags
+
+  dynamic "identity" {
+    for_each = var.identity == null ? [] : [var.identity]
+
+    content {
+      type         = identity.value.type
+      identity_ids = identity.value.identity_ids
+    }
+  }
+
+  dynamic "customer_managed_key" {
+    for_each = var.customer_managed_key == null ? [] : [var.customer_managed_key]
+
+    content {
+      key_vault_key_id                     = customer_managed_key.value.key_vault_key_id
+      primary_user_assigned_identity_id    = customer_managed_key.value.primary_user_assigned_identity_id
+      geo_backup_key_vault_key_id          = customer_managed_key.value.geo_backup_key_vault_key_id
+      geo_backup_user_assigned_identity_id = customer_managed_key.value.geo_backup_user_assigned_identity_id
+    }
+  }
 
   storage {
     auto_grow_enabled   = var.storage.auto_grow_enabled
@@ -65,7 +97,42 @@ resource "azurerm_mysql_flexible_server" "this" {
       condition     = !(var.delegated_subnet_id != null && var.private_dns_zone_id != null && var.public_network_access_enabled)
       error_message = "public_network_access_enabled must be false when delegated_subnet_id and private_dns_zone_id are set."
     }
+
+    precondition {
+      condition     = var.entra_administrator == null || var.entra_authentication.enabled
+      error_message = "entra_authentication.enabled must be true when entra_administrator is configured."
+    }
+
+    precondition {
+      condition     = !var.entra_authentication.enabled || var.entra_administrator != null
+      error_message = "entra_administrator is required when entra_authentication.enabled is true."
+    }
+
+    precondition {
+      condition     = var.entra_administrator == null || (var.identity != null && var.identity.type == "UserAssigned" && contains(var.identity.identity_ids, var.entra_administrator.identity_id))
+      error_message = "entra_administrator requires identity.type UserAssigned and identity.identity_ids must include entra_administrator.identity_id."
+    }
+
+    precondition {
+      condition     = var.customer_managed_key == null || (var.identity != null && var.identity.type == "UserAssigned" && contains(var.identity.identity_ids, var.customer_managed_key.primary_user_assigned_identity_id))
+      error_message = "customer_managed_key requires identity.type UserAssigned and identity.identity_ids must include customer_managed_key.primary_user_assigned_identity_id."
+    }
+
+    precondition {
+      condition     = var.customer_managed_key == null || var.customer_managed_key.geo_backup_user_assigned_identity_id == null || (var.identity != null && contains(var.identity.identity_ids, var.customer_managed_key.geo_backup_user_assigned_identity_id))
+      error_message = "identity.identity_ids must include customer_managed_key.geo_backup_user_assigned_identity_id when geo backup CMK identity is set."
+    }
   }
+}
+
+resource "azurerm_mysql_flexible_server_active_directory_administrator" "this" {
+  count = var.entra_authentication.enabled && var.entra_administrator != null ? 1 : 0
+
+  server_id   = azurerm_mysql_flexible_server.this.id
+  identity_id = var.entra_administrator.identity_id
+  login       = var.entra_administrator.login
+  object_id   = var.entra_administrator.object_id
+  tenant_id   = var.entra_administrator.tenant_id
 }
 
 resource "azurerm_mysql_flexible_database" "this" {
@@ -95,4 +162,45 @@ resource "azurerm_mysql_flexible_server_configuration" "this" {
   resource_group_name = var.resource_group_name
   server_name         = azurerm_mysql_flexible_server.this.name
   value               = each.value
+}
+
+resource "azurerm_monitor_diagnostic_setting" "this" {
+  for_each = var.diagnostic_settings
+
+  name                           = each.value.name
+  target_resource_id             = azurerm_mysql_flexible_server.this.id
+  log_analytics_workspace_id     = each.value.log_analytics_workspace_id
+  storage_account_id             = each.value.storage_account_id
+  eventhub_authorization_rule_id = each.value.eventhub_authorization_rule_id
+  eventhub_name                  = each.value.eventhub_name
+
+  dynamic "enabled_log" {
+    for_each = concat(
+      [
+        for category in each.value.log_categories == null && length(each.value.log_category_groups) == 0 ? data.azurerm_monitor_diagnostic_categories.this[each.key].log_category_types : coalesce(each.value.log_categories, []) : {
+          category       = category
+          category_group = null
+        }
+      ],
+      [
+        for category_group in each.value.log_category_groups : {
+          category       = null
+          category_group = category_group
+        }
+      ]
+    )
+
+    content {
+      category       = enabled_log.value.category
+      category_group = enabled_log.value.category_group
+    }
+  }
+
+  dynamic "enabled_metric" {
+    for_each = toset(each.value.metric_categories)
+
+    content {
+      category = enabled_metric.value
+    }
+  }
 }

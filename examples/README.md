@@ -13,11 +13,14 @@ These examples are part of the **[FoggyKitchen.com training ecosystem](https://f
 |:-------:|:------|:-----------|
 | 01 | **Private Access with Delegated Subnet** | MySQL Flexible Server, VNet injection, delegated subnet, Private DNS |
 | 02 | **Private Endpoint** | MySQL Flexible Server, FoggyKitchen Private Endpoint module, Private DNS Zone Group |
+| 03 | **Microsoft Entra ID Authentication** | MySQL Flexible Server, Entra administrator, user-assigned managed identity |
+| 04 | **Customer-Managed Key** | MySQL Flexible Server, Key Vault key, user-assigned managed identity, RBAC |
+| 05 | **Diagnostics** | MySQL Flexible Server, Azure Monitor diagnostic settings, Log Analytics |
 
 Each example can be applied independently, but the recommended learning path is sequential:
 
 ```text
-01 → 02
+01 → 02 → 03 → 04 → 05
 ```
 
 ---

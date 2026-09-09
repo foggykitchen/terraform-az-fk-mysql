@@ -1,0 +1,18 @@
+resource_group_name = "foggykitchen-rg"
+location            = "westeurope"
+name_prefix         = "fk-mysql03"
+
+mysql_admin_username = "mysqladmin"
+mysql_admin_password = "REPLACE_WITH_STRONG_PASSWORD"
+
+entra_admin_user_principal_name = "fk-mysql-admin@REPLACE_WITH_TENANT_DOMAIN"
+entra_admin_user_display_name   = "FoggyKitchen MySQL Admin"
+entra_admin_user_mail_nickname  = "fkmysqladmin"
+entra_admin_user_password       = "REPLACE_WITH_STRONG_PASSWORD"
+entra_admin_group_name          = "fk-mysql-admins"
+
+tags = {
+  project     = "foggykitchen"
+  environment = "dev"
+  managed_by  = "opentofu"
+}
