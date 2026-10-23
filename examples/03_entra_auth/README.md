@@ -163,6 +163,11 @@ Visit [FoggyKitchen.com](https://foggykitchen.com/) for Azure, OCI, multicloud, 
 
 ---
 
+## Related technical articles
+
+- [Azure Database Security with Terraform: Entra ID, Managed Identities and CMK](https://foggykitchen.com/2026/09/14/azure-database-security-entra-id-cmk-terraform/)
+  — Explore database authentication with Entra ID, managed identities and customer-managed encryption keys.
+
 ## License
 
 Licensed under the **Universal Permissive License (UPL), Version 1.0**.

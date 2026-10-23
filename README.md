@@ -314,6 +314,13 @@ See [`examples/`](examples) for details.
 
 ---
 
+## Related technical articles
+
+- [Azure Database Modules with Terraform: SQL, MySQL and PostgreSQL](https://foggykitchen.com/2026/09/07/azure-database-modules-terraform-sql-mysql-postgresql/)
+  — Compare SQL, MySQL and PostgreSQL module composition and private connectivity options.
+- [Azure Database Security with Terraform: Entra ID, Managed Identities and CMK](https://foggykitchen.com/2026/09/14/azure-database-security-entra-id-cmk-terraform/)
+  — Explore database authentication with Entra ID, managed identities and customer-managed encryption keys.
+
 ## 🪪 License
 
 Licensed under the **Universal Permissive License (UPL), Version 1.0**.  
